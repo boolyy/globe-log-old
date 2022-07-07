@@ -17,7 +17,9 @@ mongoose.connect(uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
+
 const connection = mongoose.connection; // Instance of db connection
+
 connection.once("open", () => {
   console.log("MongoDB database connection established successfully");
 });
