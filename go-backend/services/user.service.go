@@ -11,6 +11,6 @@ type UserService interface {
 	CreateUser(models.User) error
 	GetUser(string) (models.User, error)
 	GetAll() ([]*models.User, error)
-	UpdateUser(string, bson.D) (*mongo.UpdateResult, error)
+	UpdateUser(bson.D, bson.D) (*mongo.UpdateResult, error)
 	DeleteUser(string) error
 }

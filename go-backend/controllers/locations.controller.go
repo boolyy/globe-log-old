@@ -7,7 +7,6 @@ import (
 	"github.com/boolyy/globe-log/go-backend/models"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // Key of location in user's locations map in mongodb. Format of "(lat, long)"
@@ -40,6 +39,7 @@ func areCordsValid(cords []float32) error {
 	return nil
 }
 
+// Add location only if it does not exist
 func (locationController *Controller) AddLocation(context *gin.Context) {
 	var locationReqInfo LocationReqInfo
 
@@ -48,18 +48,20 @@ func (locationController *Controller) AddLocation(context *gin.Context) {
 		return
 	}
 
-	//validation
+	// Check if cords are valid
 	if err := areCordsValid(locationReqInfo.Location.Coordinates); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
 
-	//create filter update
+	// create filter update
 	locationKey := createLocationKeyFromCords(locationReqInfo.Location.Coordinates)
-	update := bson.D{primitive.E{Key: "$set", Value: bson.D{primitive.E{Key: "locations." + locationKey, Value: locationReqInfo.Location}}}}
 
-	//Update user of locationReqInfo.Username
-	updateResult, err := locationController.UserService.UpdateUser(locationReqInfo.Username, update)
+	filter := bson.D{{Key: "username", Value: locationReqInfo.Username}, {Key: "locations." + locationKey, Value: bson.D{{Key: "$exists", Value: false}}}}
+	update := bson.D{{Key: "$set", Value: bson.D{{Key: "locations." + locationKey, Value: locationReqInfo.Location}}}}
+
+	// Update user of locationReqInfo.Username
+	updateResult, err := locationController.UserService.UpdateUser(filter, update)
 
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -69,23 +71,52 @@ func (locationController *Controller) AddLocation(context *gin.Context) {
 	context.JSON(http.StatusOK, updateResult)
 }
 
+// Update location only if it does exist
 func (locationController *Controller) UpdateLocation(context *gin.Context) {
+	var locationReqInfo LocationReqInfo
+
+	if err := context.ShouldBindJSON(&locationReqInfo); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	// Check if cords are valid
+	if err := areCordsValid(locationReqInfo.Location.Coordinates); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	locationKey := createLocationKeyFromCords(locationReqInfo.Location.Coordinates)
+
+	filter := bson.D{{Key: "username", Value: locationReqInfo.Username}, {Key: "locations." + locationKey, Value: bson.D{{Key: "$exists", Value: true}}}}
+	update := bson.D{{Key: "$set", Value: bson.D{{Key: "locations." + locationKey, Value: locationReqInfo.Location}}}}
+
+	updateResult, err := locationController.UserService.UpdateUser(filter, update)
+
+	if err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+
+	context.JSON(http.StatusOK, updateResult)
 
 }
 
+// Delete location only if it does exist
 func (locationController *Controller) DeleteLocation(context *gin.Context) {
 	var deleteLocationReqInfo DeleteLocationReqInfo
 
 	if err := context.ShouldBindJSON(&deleteLocationReqInfo); err != nil {
-		context.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
 
 	username, locationToDelete := deleteLocationReqInfo.Username, deleteLocationReqInfo.Key
+	filter := bson.D{{Key: "username", Value: username}}
 	// call update uset with unset or something to delete location key for given location
-	update := bson.D{primitive.E{Key: "$unset", Value: bson.D{primitive.E{Key: "locations." + locationToDelete, Value: ""}}}}
+	update := bson.D{{Key: "$unset", Value: bson.D{{Key: "locations." + locationToDelete, Value: ""}}}}
 
-	updateResult, err := locationController.UserService.UpdateUser(username, update)
+	updateResult, err := locationController.UserService.UpdateUser(filter, update)
 
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -99,4 +130,5 @@ func (locationController *Controller) RegisterLocationRoutes(routerGroup *gin.Ro
 	locationRoute := routerGroup.Group("/location")
 	locationRoute.PUT("", locationController.AddLocation)
 	locationRoute.DELETE("", locationController.DeleteLocation)
+	locationRoute.PATCH("", locationController.UpdateLocation)
 }

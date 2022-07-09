@@ -32,8 +32,8 @@ func (userServiceImpl *UserServiceImpl) GetUser(username string) (models.User, e
 	return resultUser, err
 }
 
-func (userServiceImpl *UserServiceImpl) UpdateUser(username string, update bson.D) (*mongo.UpdateResult, error) {
-	filter := bson.D{{Key: "username", Value: username}}
+func (userServiceImpl *UserServiceImpl) UpdateUser(filter bson.D, update bson.D) (*mongo.UpdateResult, error) {
+	//filter := bson.D{{Key: "username", Value: username}}
 	updateResult, err := userServiceImpl.userCollection.UpdateOne(userServiceImpl.ctx, filter, update)
 	if err != nil {
 		return nil, err

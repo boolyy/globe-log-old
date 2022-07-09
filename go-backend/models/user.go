@@ -12,6 +12,11 @@ const (
 	PrivacyOption_Private     PrivacyOption = "Private"
 )
 
+var PrivacyMap = map[string]PrivacyOption{
+	"Public":       PrivacyOption_Public,
+	"Friends Only": PrivacyOption_FriendsOnly,
+	"Private":      PrivacyOption_Private}
+
 type User struct {
 	Username      string        `json:"username" bson:"username"`
 	Password      string        `json:"password" bson:"password"`
