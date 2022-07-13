@@ -10,6 +10,7 @@ import (
 type UserService interface {
 	CreateUser(models.User) error
 	GetUser(string) (models.User, error)
+	GetField(bson.D) *mongo.SingleResult
 	GetAll() ([]*models.User, error)
 	UpdateUser(bson.D, bson.D) (*mongo.UpdateResult, error)
 	DeleteUser(string) error

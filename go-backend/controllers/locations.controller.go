@@ -10,12 +10,12 @@ import (
 )
 
 // Key of location in user's locations map in mongodb. Format of "(lat, long)"
-type DeleteLocationReqInfo struct {
+type deleteLocationReqInfo struct {
 	Username string `json:"username"`
 	Key      string `json:"locationKey"`
 }
 
-type LocationReqInfo struct {
+type locationReqInfo struct {
 	Username string          `json:"username"`
 	Location models.Location `json:"location"`
 }
@@ -24,7 +24,23 @@ func createLocationKeyFromCords(cords []float32) string {
 	return "(" + fmt.Sprint(cords[0]) + "," + fmt.Sprint(cords[1]) + ")"
 }
 
+func validateLocation(location models.Location) error {
+	if err := areCordsValid(location.Coordinates); err != nil {
+		return err
+	}
+
+	if location.Title == "" {
+		return fmt.Errorf("missing title")
+	}
+
+	return nil
+}
+
 func areCordsValid(cords []float32) error {
+
+	if len(cords) != 2 {
+		return fmt.Errorf("incorrect number of cords")
+	}
 
 	latitude, longitude := cords[0], cords[1]
 
@@ -41,7 +57,7 @@ func areCordsValid(cords []float32) error {
 
 // Add location only if it does not exist
 func (locationController *Controller) AddLocation(context *gin.Context) {
-	var locationReqInfo LocationReqInfo
+	var locationReqInfo locationReqInfo
 
 	if err := context.ShouldBindJSON(&locationReqInfo); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -49,7 +65,7 @@ func (locationController *Controller) AddLocation(context *gin.Context) {
 	}
 
 	// Check if cords are valid
-	if err := areCordsValid(locationReqInfo.Location.Coordinates); err != nil {
+	if err := validateLocation(locationReqInfo.Location); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
@@ -73,7 +89,7 @@ func (locationController *Controller) AddLocation(context *gin.Context) {
 
 // Update location only if it does exist
 func (locationController *Controller) UpdateLocation(context *gin.Context) {
-	var locationReqInfo LocationReqInfo
+	var locationReqInfo locationReqInfo
 
 	if err := context.ShouldBindJSON(&locationReqInfo); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -81,7 +97,7 @@ func (locationController *Controller) UpdateLocation(context *gin.Context) {
 	}
 
 	// Check if cords are valid
-	if err := areCordsValid(locationReqInfo.Location.Coordinates); err != nil {
+	if err := validateLocation(locationReqInfo.Location); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
@@ -104,7 +120,7 @@ func (locationController *Controller) UpdateLocation(context *gin.Context) {
 
 // Delete location only if it does exist
 func (locationController *Controller) DeleteLocation(context *gin.Context) {
-	var deleteLocationReqInfo DeleteLocationReqInfo
+	var deleteLocationReqInfo deleteLocationReqInfo
 
 	if err := context.ShouldBindJSON(&deleteLocationReqInfo); err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -112,8 +128,8 @@ func (locationController *Controller) DeleteLocation(context *gin.Context) {
 	}
 
 	username, locationToDelete := deleteLocationReqInfo.Username, deleteLocationReqInfo.Key
+
 	filter := bson.D{{Key: "username", Value: username}}
-	// call update uset with unset or something to delete location key for given location
 	update := bson.D{{Key: "$unset", Value: bson.D{{Key: "locations." + locationToDelete, Value: ""}}}}
 
 	updateResult, err := locationController.UserService.UpdateUser(filter, update)

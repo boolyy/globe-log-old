@@ -27,9 +27,13 @@ func (userServiceImpl *UserServiceImpl) CreateUser(user models.User) error {
 
 func (userServiceImpl *UserServiceImpl) GetUser(username string) (models.User, error) {
 	var resultUser models.User
-	query := bson.D{{Key: "username", Value: username}}
-	err := userServiceImpl.userCollection.FindOne(userServiceImpl.ctx, query).Decode(&resultUser)
+	filter := bson.D{{Key: "username", Value: username}}
+	err := userServiceImpl.userCollection.FindOne(userServiceImpl.ctx, filter).Decode(&resultUser)
 	return resultUser, err
+}
+
+func (userServiceImpl *UserServiceImpl) GetField(filter bson.D) *mongo.SingleResult {
+	return userServiceImpl.userCollection.FindOne(userServiceImpl.ctx, filter)
 }
 
 func (userServiceImpl *UserServiceImpl) UpdateUser(filter bson.D, update bson.D) (*mongo.UpdateResult, error) {

@@ -60,9 +60,6 @@ func loadMongoUri() (string, error) {
 // }
 
 func main() {
-	// http.Get("/hi")
-	// http.HandleFunc("/", hello)
-	// http.ListenAndServe(":3000", nil)
 
 	mongoURI, err := loadMongoUri()
 	if err != nil {
@@ -102,7 +99,7 @@ func main() {
 	controller.RegisterAuthRoutes(basePath)
 	controller.RegisterLocationRoutes(basePath)
 	controller.RegisterProfileRoutes(basePath)
+	controller.RegisterTripRoutes(basePath)
 
 	router.Run(":3000")
-
 }

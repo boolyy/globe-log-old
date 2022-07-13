@@ -40,15 +40,13 @@ func (authController *Controller) RegisterUser(context *gin.Context) {
 
 	signInInfo.Password = string(hashedPassword)
 
-	locationsMap := make(models.LocationsMap)
-
 	//Create user based on inputted info
 	user := models.User{
 		Username:      signInInfo.Username,
 		Password:      signInInfo.Password,
 		PrivacyOption: models.PrivacyOption_Private,
 		Friends:       []string{},
-		Locations:     locationsMap,
+		Locations:     map[string]models.Location{},
 	}
 
 	if err = authController.UserService.CreateUser(user); err != nil {
